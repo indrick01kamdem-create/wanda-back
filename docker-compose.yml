@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: wanda_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wanda
+      POSTGRES_PASSWORD: wanda123
+      POSTGRES_DB: wanda
+    ports:
+      - "5432:5432"
+    volumes:
+      - wanda_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wanda"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: wanda_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://wanda:wanda123@db:5432/wanda
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+volumes:
+  wanda_pgdata:

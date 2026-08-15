@@ -19,6 +19,7 @@ class WalletTopupRequest(BaseModel):
     phone: str
     provider: str | None = None  # mock | fapshi (défaut: config)
     redirect_url: str | None = None
+    medium: str | None = None  # 'mobile money' | 'orange money' — direct-pay si fourni
 
 
 class WalletTopupResponse(BaseModel):

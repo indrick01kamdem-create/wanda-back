@@ -15,11 +15,11 @@ En cas d'Ã©chec rÃ©seau ou de rÃ©ponse non-2xx, fallback vers le provider 
 
 import hashlib
 import logging
-import re
 
 import httpx
 
 from app.core.config import settings
+from app.core.phone import detect_operator
 from .base import SMSProvider
 
 logger = logging.getLogger(__name__)
@@ -33,33 +33,6 @@ SMS_TEMPLATE = (
 )
 
 
-_MTN_RE = re.compile(r"^6(([78][0-9]{7})|(5[0-4][0-9]{6}))$")
-_ORANGE_RE = re.compile(r"^6((9[0-9]{7})|(5[5-9][0-9]{6}))$")
-
-
-def _detect_operator(phone: str) -> str | None:
-    """
-    DÃ©tecte l'opÃ©rateur camerounais depuis un numÃ©ro international.
-    Retourne "orange", "mtn", ou None si non reconnu.
-
-    MTN    : 67x, 68x, 650-654
-    Orange : 69x, 655-659
-    """
-    normalized = phone.replace(" ", "").replace("-", "")
-    if normalized.startswith("+237"):
-        local = normalized[4:]
-    elif normalized.startswith("237"):
-        local = normalized[3:]
-    else:
-        local = normalized
-
-    if _MTN_RE.match(local):
-        return "mtn"
-    if _ORANGE_RE.match(local):
-        return "orange"
-    return None
-
-
 class TextBeeProvider(SMSProvider):
     """
     Provider principal si SMS_PROVIDER=textbee.
@@ -71,7 +44,7 @@ class TextBeeProvider(SMSProvider):
         self.fallback = fallback
 
     async def send(self, phone: str, code: str) -> None:
-        operator = _detect_operator(phone)
+        operator = detect_operator(phone)
 
         if operator is None:
             logger.info(

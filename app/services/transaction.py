@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.phone import detect_operator
 from app.models.transaction import TX_STATUS_FAILED, TX_STATUS_PENDING, TX_STATUS_SUCCESS, TX_WITHDRAWAL, WalletTransaction
 from app.services.payment.base import IPaymentProvider
 from app.services.settings import SettingsService
@@ -69,11 +70,13 @@ class WithdrawalService:
             raise BadRequestException("Transaction invalide")
 
         amount = abs(tx.amount)
+        operator = detect_operator(tx.phone or "")
+        medium = "orange money" if operator == "orange" else "mobile money"
         try:
             await provider.direct_pay(
                 amount=amount,
                 phone=tx.phone or "",
-                medium="mobile money",
+                medium=medium,
                 order_id=tx.id,
                 user_id=str(tx.user_id),
                 message="Retrait Wanda",

@@ -46,10 +46,15 @@ class PaymentService:
         provider_name: str | None = None,
         redirect_url: str | None = None,
         external_id: str | None = None,
+        medium: str | None = None,
     ) -> Payment:
         """
         Crée un paiement de rechargement de wallet et initie la tranche
         auprès du provider (lien Fapshi / USSD mock).
+
+        Si `medium` est fourni ('mobile money' | 'orange money'), utilise
+        le direct-pay du provider (débit direct, sans redirection). Sinon,
+        retombe sur le flow "page hébergée" (initiate).
         """
         if amount <= 0:
             raise HTTPException(400, "Le montant doit être positif")
@@ -71,7 +76,7 @@ class PaymentService:
         self._db.add(payment)
         await self._db.flush()
 
-        await self._create_installment(payment, amount, phone, user_id)
+        await self._create_installment(payment, amount, phone, user_id, medium=medium)
 
         # Dev : le provider mock est confirmé immédiatement (simule le webhook
         # provider). En prod (fapshi), le crédit attend la notification webhook.
@@ -188,14 +193,24 @@ class PaymentService:
         amount: int,
         phone: str,
         user_id: str,
+        medium: str | None = None,
     ) -> PaymentInstallment:
         """Appelle le provider et persiste la tranche."""
         try:
-            init = await self._provider.initiate(
-                amount=amount,
-                phone=phone,
-                order_id=payment.id,
-            )
+            if medium:
+                init = await self._provider.direct_pay(
+                    amount=amount,
+                    phone=phone,
+                    medium=medium,
+                    order_id=payment.id,
+                    user_id=user_id,
+                )
+            else:
+                init = await self._provider.initiate(
+                    amount=amount,
+                    phone=phone,
+                    order_id=payment.id,
+                )
         except Exception as exc:
             logger.error("Provider initiate error: %s", exc)
             raise HTTPException(502, f"Erreur provider paiement: {exc}")

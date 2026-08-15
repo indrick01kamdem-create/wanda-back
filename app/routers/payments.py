@@ -48,6 +48,7 @@ async def topup_wallet(
         phone=body.phone,
         provider_name=body.provider,
         redirect_url=body.redirect_url,
+        medium=body.medium,
     )
 
     settings = await SettingsService(db).get()

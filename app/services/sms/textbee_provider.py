@@ -27,9 +27,9 @@ logger = logging.getLogger(__name__)
 OTP_EXPIRE_MINUTES = 10
 
 SMS_TEMPLATE = (
-    "Wanda\n"
+    "Wanda Taxi\n"
     "Inscription reussie {code}\n"
-    "Code de vÃ©rification"
+    "Code de verification"
 )
 
 

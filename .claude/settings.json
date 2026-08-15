@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/Users/macbookpro/Desktop/dev/wanda/G-mo-app/src/hooks",
+      "/Users/macbookpro/Desktop/dev/wanda/G-mo-app/src"
+    ],
+    "allow": [
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST https://textbeeback-production.up.railway.app/api/v1/gateway/devices/69dcf86fe2c54d95f9d82653/send-sms -H 'x-api-key: 99fa955b-7f09-48f9-b63e-4c8b261deea4' -H 'Content-Type: application/json' -d '{ *)"
+    ]
+  }
+}

@@ -4,10 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_admin, get_db, require_admin_role
 from app.core.exceptions import handle_exceptions
 from app.models.user import User
-from app.schemas.admin import KpiSummary
+from app.schemas.admin import AdminCreate, AdminRead, AdminUpdate, KpiSummary
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.driver import (
     DriverApprovalUpdate,
+    DriverEditRequest,
     DriverKYCUpdate,
     DriverProfileRead,
 )
@@ -97,6 +98,27 @@ async def update_driver_kyc(
 ):
     profile = await DriverService(db).update_kyc(user_id, body)
     return ApiResponse(data=DriverProfileRead.model_validate(profile))
+
+
+@router.patch("/drivers/{user_id}", response_model=ApiResponse[DriverProfileRead])
+@handle_exceptions
+async def edit_driver(
+    user_id: str,
+    body: DriverEditRequest,
+    _admin: User = Depends(_super),
+    db: AsyncSession = Depends(get_db),
+):
+    """Correction directe du compte chauffeur par un admin (identité, véhicule,
+    documents KYC, notes d'audit forensic)."""
+    service = DriverService(db)
+    profile = await service.get_by_user_id(user_id)
+    await service.edit_profile(profile, body)
+    profile = await service.get_by_user_id_with_user(user_id)
+    item = DriverProfileRead.model_validate(profile).model_dump()
+    if profile.user:
+        item["user_name"] = profile.user.name
+        item["user_phone"] = profile.user.phone
+    return ApiResponse(data=DriverProfileRead(**item))
 
 
 # ── Withdrawals ───────────────────────────────────────────────────────────────
@@ -207,3 +229,38 @@ async def update_schedule(
 ):
     schedule = await SettingsService(db).update_schedule(body)
     return ApiResponse(data=NotificationScheduleRead.model_validate(schedule))
+
+
+# ── Staff roster (Rôles) ─────────────────────────────────────────────────────
+
+@router.get("/staff", response_model=ApiResponse[list[AdminRead]])
+@handle_exceptions
+async def list_staff(
+    _admin: User = Depends(_any_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    staff = await AdminService(db).list_staff()
+    return ApiResponse(data=[AdminRead.model_validate(s) for s in staff])
+
+
+@router.post("/staff", response_model=ApiResponse[AdminRead])
+@handle_exceptions
+async def create_staff(
+    body: AdminCreate,
+    admin: User = Depends(_super),
+    db: AsyncSession = Depends(get_db),
+):
+    staff = await AdminService(db).create_staff(body, assigned_by=admin.name or admin.email)
+    return ApiResponse(message="Membre ajouté", data=AdminRead.model_validate(staff))
+
+
+@router.patch("/staff/{admin_id}", response_model=ApiResponse[AdminRead])
+@handle_exceptions
+async def update_staff(
+    admin_id: str,
+    body: AdminUpdate,
+    _admin: User = Depends(_super),
+    db: AsyncSession = Depends(get_db),
+):
+    staff = await AdminService(db).update_staff(admin_id, body)
+    return ApiResponse(data=AdminRead.model_validate(staff))

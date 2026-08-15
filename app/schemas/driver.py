@@ -35,6 +35,9 @@ class DriverProfileRead(BaseModel):
     lat: float | None = None
     lng: float | None = None
     is_online: bool
+    cnic_number: str | None = None
+    license_number: str | None = None
+    forensic_notes: str | None = None
     created_at: datetime
 
 
@@ -65,6 +68,7 @@ class DriverEditRequest(BaseModel):
     kyc_documents: dict[str, KYC_Document] | None = None
     name: str | None = None
     phone: str | None = None
+    forensic_notes: str | None = None
 
 
 class OnlineDriverRead(BaseModel):

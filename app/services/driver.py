@@ -52,6 +52,17 @@ class DriverService:
             raise NotFoundException("Profil chauffeur introuvable")
         return profile
 
+    async def get_by_user_id_with_user(self, user_id: str) -> DriverProfile:
+        result = await self._db.execute(
+            select(DriverProfile)
+            .options(selectinload(DriverProfile.user))
+            .where(DriverProfile.user_id == user_id)
+        )
+        profile = result.scalar_one_or_none()
+        if profile is None:
+            raise NotFoundException("Profil chauffeur introuvable")
+        return profile
+
     async def get_by_id(self, profile_id: str) -> DriverProfile:
         profile = await self._db.get(DriverProfile, profile_id)
         if profile is None:
@@ -78,7 +89,7 @@ class DriverService:
 
     async def edit_profile(self, profile: DriverProfile, data: DriverEditRequest) -> DriverProfile:
         for key in ("vehicle_type", "vehicle_model", "vehicle_color", "vehicle_plate",
-                    "cnic_number", "license_number"):
+                    "cnic_number", "license_number", "forensic_notes"):
             value = getattr(data, key)
             if value is not None:
                 setattr(profile, key, value)
@@ -86,6 +97,13 @@ class DriverService:
             profile.kyc_documents = {
                 k: v.model_dump() for k, v in data.kyc_documents.items()
             }
+        if data.name is not None or data.phone is not None:
+            user = await self._db.get(User, profile.user_id)
+            if user is not None:
+                if data.name is not None:
+                    user.name = data.name
+                if data.phone is not None:
+                    user.phone = data.phone
         await self._db.commit()
         await self._db.refresh(profile)
         return profile

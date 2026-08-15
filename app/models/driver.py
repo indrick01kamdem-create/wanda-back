@@ -67,6 +67,7 @@ class DriverProfile(Base):
     # Local display fields edited by admin (not persisted to Firestore — kept here)
     cnic_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
     license_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    forensic_notes: Mapped[str | None] = mapped_column(String, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
